@@ -282,7 +282,26 @@ document.getElementById("rows").addEventListener("click",e=>{
   const open=btn.getAttribute("aria-expanded")!=="true";
   btn.setAttribute("aria-expanded",open); d.hidden=!open; tr.classList.toggle("open",open);
 });
+// Toma el CSV mas nuevo del repo (lo sube el robot todos los dias a las 7); si falla, usa los datos de RAW
+async function cargarRepo(){
+  const r=await fetch('https://api.github.com/repos/1605-83/Concurso-Bic/contents/',{cache:'no-store'});
+  if(!r.ok) throw new Error('repo '+r.status);
+  const files=(await r.json()).filter(f=>f.type==='file'&&/\.csv$/i.test(f.name));
+  if(!files.length) throw new Error('sin CSV');
+  const key=f=>{const m=f.name.match(/(\d{8})-(\d{6})/); return m? m[1]+m[2] : '0'+f.name;};
+  files.sort((a,b)=>key(b).localeCompare(key(a)));
+  const d=await fetch(files[0].download_url+'?t='+Date.now());
+  if(!d.ok) throw new Error('descarga '+d.status);
+  return {txt:new TextDecoder('windows-1252').decode(await d.arrayBuffer()), nombre:files[0].name};
+}
 render(compute(parseCSV(RAW)));
+cargarRepo().then(({txt,nombre})=>{
+  const recs=parseCSV(txt);
+  if(!recs.length || !("CodVendedor" in recs[0])) return;
+  render(compute(recs));
+  const m=nombre.match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);
+  document.getElementById("msg").textContent = m ? `Datos al ${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : "Actualizado con "+nombre;
+}).catch(()=>{});
 </script>
 </body>
 </html>

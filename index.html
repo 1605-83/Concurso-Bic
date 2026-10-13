@@ -299,6 +299,8 @@ document.getElementById("rows").addEventListener("click",e=>{
 });
 // Toma el CSV mas nuevo del repo (lo sube el robot todos los dias a las 7); si falla, usa los datos de RAW
 const etiquetaAct=n=>{ const m=String(n||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/); return (m? `Datos de ventas al ${m[3]}/${m[2]}/${m[1]} · ` : '')+'Se actualiza a las 7 hs y 13:30 hs'; };   // fecha de los datos (del nombre del CSV) y horario del robot
+// carteras de clientes por vendedor: carteras.json, lo arma el robot con los clientes activos de la ficha de Gescom
+const CARTERAS=fetch('carteras.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok? r.json() : null).catch(()=>null);
 async function cargarRepo(){
   const r=await fetch('https://api.github.com/repos/1605-83/Concurso-Bic/contents/',{cache:'no-store'});
   if(!r.ok) throw new Error('repo '+r.status);
@@ -311,7 +313,8 @@ async function cargarRepo(){
   return {txt:new TextDecoder('windows-1252').decode(await d.arrayBuffer()), nombre:files[0].name};
 }
 render(compute(parseCSV(RAW)));
-cargarRepo().then(({txt,nombre})=>{
+cargarRepo().then(async ({txt,nombre})=>{
+  const cc=await CARTERAS; if(cc&&cc.v) for(const k of Object.keys(BASES)) if(cc.v[k]) BASES[k]=cc.v[k].length;
   const recs=parseCSV(txt);
   if(!recs.length || !("CodVendedor" in recs[0])) return;
   render(compute(recs));

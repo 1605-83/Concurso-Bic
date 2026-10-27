@@ -136,11 +136,11 @@ tr.zero .prize span,tr.zero .pc span{opacity:.55}
   </div>
   <div class="covbar" aria-hidden="true"><i id="covfill" style="width:0"></i></div>
 
-  <h2>Cobertura por vendedor</h2>
+  <h2>Cobertura y facturación por vendedor</h2>
   <p class="note">La barra se mide contra la mejor cobertura del equipo. <label>Código <select id="fCod" aria-label="Código para la cobertura"><option value="">Todos los códigos</option></select></label></p>
   <div class="tablebox">
     <table>
-      <thead><tr><th>Cód.</th><th>Vendedor</th><th class="num">Base</th><th class="num"><abbr title="Clientes con compra">CCC</abbr></th><th class="num"><abbr title="Clientes sin compra">NC</abbr></th><th class="barcell">Cobertura</th></tr></thead>
+      <thead><tr><th>Cód.</th><th>Vendedor</th><th class="num">Base</th><th class="num"><abbr title="Clientes con compra">CCC</abbr></th><th class="num"><abbr title="Clientes sin compra">NC</abbr></th><th class="barcell">Cobertura</th><th class="num">Facturación con IVA</th></tr></thead>
       <tbody id="covrows"></tbody>
     </table>
   </div>
@@ -282,14 +282,16 @@ function render(d){
   fc.innerHTML=`<option value="">Todos los códigos</option>`+cods.map(c=>`<option value="${c}">${c} · ${d.artNom.get(c)}</option>`).join("");
   fc.value=codSel;
   const cccDe=v=>{ if(!codSel) return v.ccc; const m=v.porCod.get(codSel); return m? [...m.values()].filter(x=>x>0).length : 0; };
-  const vs=[...d.vend].map(v=>{ const k=cccDe(v); return {...v,ccc:k,p:v.base?Math.min(k,v.base)/v.base*100:0}; })
+  const facDe=v=>codSel? (v.arts.get(codSel)?.fac||0) : v.fac;   // facturacion con IVA del codigo elegido (o de todos)
+  const vs=[...d.vend].map(v=>{ const k=cccDe(v); return {...v,ccc:k,fac:facDe(v),p:v.base?Math.min(k,v.base)/v.base*100:0}; })
     .sort((a,b)=>b.p-a.p||a.cod-b.cod);
   const maxP=Math.max(1,...vs.map(v=>v.p));
   document.getElementById("covrows").innerHTML = vs.map(v=>{
     const c=Math.min(v.ccc,v.base);
     return `<tr class="${c>0?"":"zero"}"><td class="cod">${v.cod}</td><td class="name">${v.name}</td>
       <td class="num">${v.base||"—"}</td><td class="num">${c}</td><td class="num">${v.base?v.base-c:"—"}</td>
-      <td class="barcell"><div class="bar"><div class="track"><div class="fill cv" style="width:${v.p/maxP*100}%"></div></div><b class="pc"><span>${v.base?pf(v.p):"—"}</span></b></div></td></tr>`;
+      <td class="barcell"><div class="bar"><div class="track"><div class="fill cv" style="width:${v.p/maxP*100}%"></div></div><b class="pc"><span>${v.base?pf(v.p):"—"}</span></b></div></td>
+      <td class="num prize"><span>${fmt(v.fac)}</span></td></tr>`;
   }).join("");
 }
 
